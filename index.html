@@ -36,22 +36,22 @@
 </div>
 
 <script>
-    // Taruh URL Web App Google Apps Script hasil deploy terbaru Bapak di bawah ini:
     const DEPLOY_URL = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec";
 
-    // Daftar Pertanyaan Lengkap Sesuai Struktur Kolom B sampai L
+    // Struktur pertanyaan dengan penyesuaian logika alur bercabang
     const daftarPertanyaan = [
         { kunci: "no_pendaftaran", teks: "Berapa nomor pendaftarannya?", tipe: "teks" },
         { kunci: "nama_lengkap", teks: "Siapa nama lengkap murid?", tipe: "teks" },
         { kunci: "nik", teks: "Berapa nomor N I K murid?", tipe: "nik" },
         { kunci: "tempat_lahir", teks: "Di mana tempat lahirnya?", tipe: "teks" },
-        { kunci: "tanggal_lahir", teks: "Sebutkan tanggal lahirnya? Contoh 2 Agustus 2000", tipe: "tanggal" },
+        { kunci: "tanggal_lahir", teks: "Sebutkan tanggal lahirnya?", tipe: "tanggal" },
         { kunci: "nama_ayah", teks: "Siapa nama ayah kandungnya?", tipe: "teks" },
         { kunci: "nama_ibu", teks: "Siapa nama ibu kandungnya?", tipe: "teks" },
-        { kunci: "alamat", teks: "Di mana alamat tempat tinggalnya?", tipe: "teks" },
         { kunci: "pilihan_tk", teks: "Apakah murid lulusan T K? Jawab Ya atau Tidak", tipe: "pilihan" },
-        { kunci: "nama_tk", teks: "Apa nama T K asalnya?", tipe: "teks" },
-        { kunci: "jarak_km", teks: "Berapa jarak dari rumah ke sekolah dalam kilometer?", tipe: "teks" }
+        { kunci: "nama_tk", teks: "Apa nama T K asalnya?", tipe: "teks" }, // Bisa dilewati secara otomatis
+        { kunci: "alamat", teks: "Di mana alamat tempat tinggalnya?", tipe: "teks" },
+        { kunci: "opsi_jarak", teks: "Pilih jarak rumah. Apakah Kurang dari 1 KM atau Lebih dari 1 KM?", tipe: "jarak_opsi" },
+        { kunci: "jarak_km", teks: "Berapa kilometer jarak pastinya?", tipe: "teks" } // Bisa dilewati secara otomatis
     ];
 
     let indeksSekarang = 0;
@@ -94,6 +94,22 @@
         if (indeksSekarang < daftarPertanyaan.length) {
             let item = daftarPertanyaan[indeksSekarang];
             
+            // LOGIKA LOMPAT 1: Jika bukan lulusan TK, lewati pertanyaan nama TK
+            if (item.kunci === "nama_tk" && dataHasil["pilihan_tk"] === "Tidak") {
+                dataHasil["nama_tk"] = "-"; 
+                indeksSekarang++;
+                prosesPertanyaan();
+                return;
+            }
+
+            // LOGIKA LOMPAT 2: Jika jarak kurang dari 1 KM, isi data otomatis dan lewati pertanyaan nilai KM pastinya
+            if (item.kunci === "jarak_km" && dataHasil["opsi_jarak"] === "Kurang dari 1 KM") {
+                dataHasil["jarak_km"] = "< 1 KM"; 
+                indeksSekarang++;
+                prosesPertanyaan();
+                return;
+            }
+            
             document.getElementById("status").style.background = "#eff6ff";
             document.getElementById("status").style.borderColor = "#bfdbfe";
             document.getElementById("status").style.color = "#1e40af";
@@ -110,7 +126,7 @@
             document.getElementById("status").style.borderColor = "#bbf7d0";
             document.getElementById("status").style.color = "#166534";
             document.getElementById("status").innerText = "⏳ Selesai! Mengirim data ke Google Spreadsheet...";
-            bicara("Data lengkap, memproses penyimpanan.", kirimKeSpreadsheet);
+            bicara("Data lengkap, memproses penyimpanan ke spreadsheet.", kirimKeSpreadsheet);
         }
     }
 
@@ -130,13 +146,13 @@
             micHarusAktif = false; 
             let hasilSuara = event.results[0][0].transcript;
             let item = daftarPertanyaan[indeksSekarang];
-            let TeksLogTampilan = hasilSuara; // buat cadangan teks asli untuk ditampilkan di log web
+            let TeksLogTampilan = hasilSuara; 
 
-            // 1. Perbaikan Konversi Tanggal agar Valid Dikirim ke Google Sheets
+            // 1. Format Tanggal Otomatis (ISO format YYYY-MM-DD)
             if (item.tipe === "tanggal") {
                 let tanggalTerformat = formatTanggalKeISO(hasilSuara);
                 if(tanggalTerformat !== null) {
-                    hasilSuara = tanggalTerformat; // Berupa string "YYYY-MM-DD"
+                    hasilSuara = tanggalTerformat;
                 }
             }
             
@@ -146,7 +162,7 @@
                 TeksLogTampilan = hasilSuara;
             }
 
-            // 3. Format Pilihan Ya atau Tidak
+            // 3. Format Pilihan Ya atau Tidak untuk TK
             if (item.tipe === "pilihan") {
                 if (hasilSuara.toLowerCase().includes("ya")) hasilSuara = "Ya";
                 else if (hasilSuara.toLowerCase().includes("tidak")) hasilSuara = "Tidak";
@@ -154,7 +170,19 @@
                 TeksLogTampilan = hasilSuara;
             }
 
-            // Simpan hasil data
+            // 4. Logika Seleksi Opsi Jarak Rumah
+            if (item.tipe === "jarak_opsi") {
+                if (hasilSuara.toLowerCase().includes("kurang") || hasilSuara.toLowerCase().includes("kurang dari")) {
+                    hasilSuara = "Kurang dari 1 KM";
+                } else if (hasilSuara.toLowerCase().includes("lebih") || hasilSuara.toLowerCase().includes("lebih dari")) {
+                    hasilSuara = "Lebih dari 1 KM";
+                } else {
+                    hasilSuara = "Kurang dari 1 KM"; // Default jika suara kurang jelas
+                }
+                TeksLogTampilan = hasilSuara;
+            }
+
+            // Simpan hasil ke objek
             dataHasil[item.kunci] = hasilSuara;
             
             // Cetak ke Log Box Layar
@@ -193,35 +221,52 @@
         setTimeout(prosesPertanyaan, 400);
     }
 
-    // Fungsi canggih pengubah kata tanggal Indonesia menjadi format baku YYYY-MM-DD
     function formatTanggalKeISO(teksSuara) {
         const bulanIndo = {
-            "januari": "01", "februari": "02", "maret": "03", "april": "04", "mei": "05", "juni": "06",
-            "juli": "07", "agustus": "08", "september": "09", "oktober": "10", "november": "11", "desember": "12"
+            "januari": "01", "jan": "01", "februari": "02", "feb": "02", "maret": "03", "mar": "03",
+            "april": "04", "apr": "04", "mei": "05", "juni": "06", "jun": "06", "juli": "07", "jul": "07",
+            "agustus": "08", "agu": "08", "agust": "08", "september": "09", "sep": "09", "oktober": "10", 
+            "okt": "10", "november": "11", "nov": "11", "desember": "12", "des": "12"
         };
-        
-        let bersih = teksSuara.toLowerCase().replace(/-/g, " ");
-        let bagian = bersih.split(" ");
-        
+        let bersih = teksSuara.toLowerCase().replace(/[\.\-]/g, " ");
+        let bagian = bersih.split(/\s+/);
         if (bagian.length >= 3) {
-            let tgl = bagian[0].padStart(2, '0'); // Contoh: "2" jadi "02"
+            let tgl = bagian[0].padStart(2, '0');
             let blnKata = bagian[1];
             let thn = bagian[2];
-            
             let bln = bulanIndo[blnKata] || "01";
-            
-            // Mengembalikan string berformat "YYYY-MM-DD"
             return `${thn}-${bln}-${tgl}`; 
         }
-        return null; 
+        return teksSuara; 
     }
 
     function kirimKeSpreadsheet() {
+        // Kita satukan hasil opsi_jarak dan nilai km murni agar pas masuk ke 1 kolom Jarak (KM) di Spreadsheet Bapak
+        let hasilJarakFinal = dataHasil["jarak_km"];
+        if (dataHasil["opsi_jarak"] === "Lebih dari 1 KM") {
+            // Jika berisi angka murni, misal "5", format tampilannya kita perjelas menjadi "5 KM"
+            hasilJarakFinal = dataHasil["jarak_km"].toLowerCase().includes("km") ? dataHasil["jarak_km"] : dataHasil["jarak_km"] + " KM";
+        }
+        
+        let payload = {
+            no_pendaftaran: dataHasil["no_pendaftaran"],
+            nama_lengkap: dataHasil["nama_lengkap"],
+            nik: dataHasil["nik"],
+            tempat_lahir: dataHasil["tempat_lahir"],
+            tanggal_lahir: dataHasil["tanggal_lahir"],
+            nama_ayah: dataHasil["nama_ayah"],
+            nama_ibu: dataHasil["nama_ibu"],
+            pilihan_tk: dataHasil["pilihan_tk"],
+            nama_tk: dataHasil["nama_tk"],
+            alamat: dataHasil["alamat"],
+            jarak_km: hasilJarakFinal
+        };
+
         fetch(DEPLOY_URL, {
             method: "POST",
             mode: "no-cors",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(dataHasil)
+            body: JSON.stringify(payload)
         }).then(() => {
             document.getElementById("status").innerText = "✅ Alhamdulillah, Data Sukses Tersimpan!";
             bicara("Alhamdulillah, data sukses disimpan ke spreadsheet.");
