@@ -3,201 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi SPMB Suara - SDN Ranca Tales</title>
+    <title>PPDB Suara AI - SDN Ranca Tales</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background-color: #f4f6f9; }
-        h2 { text-align: center; color: #333; }
-        .form-group { margin-bottom: 15px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        .input-row { display: flex; gap: 10px; }
-        input, select { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
-        button { padding: 10px 15px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; }
-        .btn-mic { background-color: #007bff; color: white; }
-        .btn-mic.listening { background-color: #dc3545; animation: pulse 1s infinite; }
-        .btn-submit { background-color: #28a745; color: white; width: 100%; font-weight: bold; margin-top: 20px; padding: 12px; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; margin: 30px auto; padding: 20px; background-color: #f1f5f9; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); text-align: center; }
+        h2 { margin-bottom: 5px; color: #1e293b; }
+        p.sub { color: #64748b; font-size: 14px; margin-bottom: 25px; }
+        .btn-main-mic { width: 90px; height: 90px; border-radius: 50%; border: none; background-color: #2563eb; color: white; font-size: 36px; cursor: pointer; transition: all 0.3s; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+        .btn-main-mic.listening { background-color: #dc2626; animation: pulse 1.2s infinite; box-shadow: 0 4px 12px rgba(220,38,38,0.3); }
+        #status-text { font-weight: bold; color: #475569; margin-bottom: 20px; min-height: 20px; }
+        .preview-box { text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-top: 20px; display: none; }
+        .preview-box h4 { margin-top: 0; color: #334155; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+        .preview-item { font-size: 14px; margin: 5px 0; color: #334155; }
+        .preview-item span { font-weight: bold; color: #0f172a; }
+        .btn-submit { background-color: #16a34a; color: white; width: 100%; font-weight: bold; margin-top: 20px; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; display: none; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <h2>🎙️ FORM PPDB BERBASIS SUARA</h2>
+<div class="card">
+    <h2>🎙️ PPDB Suara Pintar (AI)</h2>
+    <p class="sub">SDN Ranca Tales</p>
     
-    <form id="ppdbForm">
-        <!-- Input No Pendaftaran -->
-        <div class="form-group">
-            <label>No. Pendaftaran (Input Manual/Suara)</label>
-            <div class="input-row">
-                <input type="text" id="noDaftar" placeholder="Contoh: 001">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('noDaftar')">🎙️</button>
-            </div>
-        </div>
+    <!-- HANYA SATU TOMBOL MIKROFON UTAMA -->
+    <button type="button" id="micUtama" class="btn-main-mic" onclick="toggleDikte()">🎙️</button>
+    <div id="status-text">Klik tombol untuk mulai bicara...</div>
+    
+    <!-- KOTAK PRATINJAU HASIL ANALISIS AI -->
+    <div id="previewBox" class="preview-box">
+        <h4>🔍 Hasil Analisis Data (Mohon Dicek):</h4>
+        <div id="dataHasil"></div>
+        <button type="button" id="btnKirim" class="btn-submit" onclick="kirimKeSpreadsheet()">💾 COCOK, SIMPAN DATA</button>
+    </div>
+</div>
 
-        <!-- Input Nama Murid -->
-        <div class="form-group">
-            <label>Nama Murid</label>
-            <div class="input-row">
-                <input type="text" id="nama" placeholder="Bicara nama murid...">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('nama')">🎙️</button>
-            </div>
-        </div>
+<script>
+    // =========================================================================
+    // CONFIGURATION (URL DAN API KEY SUDAH TERPASANG DAN SIAP PAKAI)
+    // =========================================================================
+    const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec"; 
+    const GROQ_API_KEY = "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";
+    // =========================================================================
 
-        <!-- Input NIK -->
-        <div class="form-group">
-            <label>No NIK</label>
-            <div class="input-row">
-                <input type="text" id="nik" placeholder="Bicara angka NIK...">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('nik')">🎙️</button>
-            </div>
-        </div>
+    let recognition;
+    let isListening = false;
+    let dataTerpilih = null;
 
-        <!-- Tempat Lahir -->
-        <div class="form-group">
-            <label>Tempat Lahir</label>
-            <div class="input-row">
-                <input type="text" id="tempatLahir" placeholder="Bicara kota lahir...">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('tempatLahir')">🎙️</button>
-            </div>
-        </div>
+    function toggleDikte() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) { return alert("Browser tidak mendukung sensor suara."); }
 
-        <!-- Tanggal Lahir -->
-        <div class="form-group">
-            <label>Tanggal Lahir</label>
-            <div class="input-row">
-                <input type="text" id="tglLahir" placeholder="Contoh: 2 Mei 2019">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('tglLahir')">🎙️</button>
-            </div>
-        </div>
+        const btn = document.getElementById('micUtama');
+        const status = document.getElementById('status-text');
 
-        <!-- Nama Ayah -->
-        <div class="form-group">
-            <label>Nama Ayah</label>
-            <div class="input-row">
-                <input type="text" id="ayah" placeholder="Bicara nama ayah...">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('ayah')">🎙️</button>
-            </div>
-        </div>
-
-        <!-- Nama Ibu -->
-        <div class="form-group">
-            <label>Nama Ibu</label>
-            <div class="input-row">
-                <input type="text" id="ibu" placeholder="Bicara nama ibu...">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('ibu')">🎙️</button>
-            </div>
-        </div>
-
-        <!-- Alamat -->
-        <div class="form-group">
-            <label>Alamat Tempat Tinggal</label>
-            <div class="input-row">
-                <input type="text" id="alamat" placeholder="Bicara alamat...">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('alamat')">🎙️</button>
-            </div>
-        </div>
-
-        <!-- Pilihan TK -->
-        <div class="form-group">
-            <label>Pilihan TK</label>
-            <select id="pilihanTK">
-                <option value="Ya">Ya</option>
-                <option value="Tidak">Tidak</option>
-            </select>
-        </div>
-
-        <!-- Nama TK -->
-        <div class="form-group">
-            <label>Nama TK (Jika Ya)</label>
-            <div class="input-row">
-                <input type="text" id="namaTK" placeholder="Bicara nama TK...">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('namaTK')">🎙️</button>
-            </div>
-        </div>
-
-        <!-- Jarak -->
-        <div class="form-group">
-            <label>Jarak Rumah ke Sekolah (Km)</label>
-            <div class="input-row">
-                <input type="text" id="jarak" placeholder="Contoh: 1">
-                <button type="button" class="btn-mic" onclick="mulaiDikte('jarak')">🎙️</button>
-            </div>
-        </div>
-
-        <button type="submit" class="btn-submit">💾 SIMPAN KE SPREADSHEET</button>
-    </form>
-
-    <script>
-        // GANTI URL DI BAWAH INI DENGAN URL WEB APP GOOGLE APPS SCRIPT BAPAK
-        const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec";
-
-        // Fungsi Voice Recognition (Suara) bawaan Browser
-        function mulaiDikte(idTarget) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("Browser Bapak tidak mendukung fitur suara. Gunakan Google Chrome laptop/HP!");
-                return;
-            }
-
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'id-ID'; // Dipaksa wajib Bahasa Indonesia
+        if (!isListening) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'id-ID';
             recognition.interimResults = false;
 
-            const inputField = document.getElementById(idTarget);
-            const btn = inputField.nextElementSibling;
+            recognition.onstart = () => {
+                isListening = true;
+                btn.classList.add('listening');
+                status.innerText = "🔴 Mendengarkan... Sebutkan data murid sekaligus!";
+            };
 
-            recognition.onstart = () => btn.classList.add('listening');
-            recognition.onend = () => btn.classList.remove('listening');
-            
-            recognition.onresult = (event) => {
-                let hasilSuara = event.results[0][0].transcript;
-                // Bersihkan tanda titik di akhir jika ada otomatis dari sistem
-                if(hasilSuara.endsWith('.')) hasilSuara = hasilSuara.slice(0, -1);
-                inputField.value = hasilSuara;
+            recognition.onend = () => {
+                isListening = false;
+                btn.classList.remove('listening');
+            };
+
+            recognition.onresult = async (event) => {
+                const teksSuara = event.results[0][0].transcript;
+                status.innerText = "🤖 Sedang diproses AI, mohon tunggu...";
+                await prosesDenganAI(teksSuara);
             };
 
             recognition.start();
+        } else {
+            recognition.stop();
         }
+    }
 
-        // Kirim Data ke Google Spreadsheet saat tombol Simpan diklik
-        document.getElementById('ppdbForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const submitBtn = document.querySelector('.btn-submit');
-            submitBtn.innerText = "Mengirim data...";
-            submitBtn.disabled = true;
+    // FUNGSI UTAMA: AI MEMILAH TEKS SUARA MENJADI KOLOM-KOLOM
+    async function prosesDenganAI(teks) {
+        const prompt = `Kamu adalah sistem PPDB sekolah. Ekstrak teks pendaftaran berikut ke dalam format JSON murni. 
+        Teks: "${teks}"
+        Format JSON wajib memiliki key: noDaftar, nama, nik, tempatLahir, tglLahir, ayah, ibu, alamat, pilihanTK, namaTK, jarak. 
+        Ketentuan nilai:
+        - pilihanTK hanya berisi "Ya" atau "Tidak".
+        - Jika ada kolom yang tidak disebutkan dalam teks, isi dengan "".
+        - Berikan hasil HANYA objek JSON saja, tanpa penjelasan kata-kata tambahan apapun.`;
 
-            const payload = {
-                noDaftar: document.getElementById('noDaftar').value,
-                nama: document.getElementById('nama').value,
-                nik: document.getElementById('nik').value,
-                tempatLahir: document.getElementById('tempatLahir').value,
-                tglLahir: document.getElementById('tglLahir').value,
-                ayah: document.getElementById('ayah').value,
-                ibu: document.getElementById('ibu').value,
-                alamat: document.getElementById('alamat').value,
-                pilihanTK: document.getElementById('pilihanTK').value,
-                namaTK: document.getElementById('namaTK').value,
-                jarak: document.getElementById('jarak').value
+        try {
+            const respon = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${GROQ_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "llama3-8b-8192",
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0.1
+                })
+            });
+
+            const hasilJson = await respon.json();
+            const teksMentah = hasilJson.choices[0].message.content.trim();
+            dataTerpilih = JSON.parse(teksMentah);
+
+            // Tampilkan hasil analisis ke layar agar bapak bisa cek ulang sebelum disimpan
+            let htmlData = "";
+            const labels = {
+                noDaftar: "No Daftar", nama: "Nama Murid", nik: "NIK", 
+                tempatLahir: "Tempat Lahir", tglLahir: "Tgl Lahir", 
+                ayah: "Nama Ayah", ibu: "Nama Ibu", alamat: "Alamat", 
+                pilihanTK: "Pilihan TK", namaTK: "Nama TK", jarak: "Jarak (Km)"
             };
 
-            fetch(URL_WEB_APP, {
-                method: "POST",
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === "sukses") {
-                    alert("Mantap Pak! Data masuk ke spreadsheet di baris " + data.baris);
-                    document.getElementById('ppdbForm').reset();
-                } else {
-                    alert("Aduh gagal mengirim: " + data.error);
-                }
-            })
-            .catch(err => alert("Eror koneksi: " + err))
-            .finally(() => {
-                submitBtn.innerText = "💾 SIMPAN KE SPREADSHEET";
-                submitBtn.disabled = false;
-            });
+            for (let key in dataTerpilih) {
+                htmlData += `<div class="preview-item"><span>${labels[key] || key}:</span> ${dataTerpilih[key]}</div>`;
+            }
+
+            document.getElementById('dataHasil').innerHTML = htmlData;
+            document.getElementById('previewBox').style.display = "block";
+            document.getElementById('btnKirim').style.display = "block";
+            document.getElementById('status-text').innerText = "✨ Selesai dianalisis!";
+
+        } catch (err) {
+            alert("Gagal memproses suara lewat AI: " + err);
+            document.getElementById('status-text').innerText = "Gagal memproses.";
+        }
+    }
+
+    // KIRIM HASIL KE GOOGLE SPREADSHEET BAPAK
+    function kirimKeSpreadsheet() {
+        const btnKirim = document.getElementById('btnKirim');
+        btnKirim.innerText = "Mengirim ke Google Sheets...";
+        btnKirim.disabled = true;
+
+        fetch(URL_WEB_APP, {
+            method: "POST",
+            body: JSON.stringify(dataTerpilih)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === "sukses") {
+                alert("Data berhasil masuk ke Spreadsheet baris " + data.baris);
+                document.getElementById('previewBox').style.display = "none";
+                document.getElementById('status-text').innerText = "Klik tombol untuk mulai bicara...";
+            } else {
+                alert("Gagal kirim: " + data.error);
+            }
+        })
+        .catch(err => alert("Eror jaringan: " + err))
+        .finally(() => {
+            btnKirim.innerText = "💾 COCOK, SIMPAN DATA";
+            btnKirim.disabled = false;
         });
-    </script>
+    }
+</script>
 </body>
 </html>
