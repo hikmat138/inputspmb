@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi SPMB Suara - SDN Ranca Tales</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background-color: #f4f6f9; }
+        h2 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .input-row { display: flex; gap: 10px; }
+        input, select { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        button { padding: 10px 15px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-mic { background-color: #007bff; color: white; }
+        .btn-mic.listening { background-color: #dc3545; animation: pulse 1s infinite; }
+        .btn-submit { background-color: #28a745; color: white; width: 100%; font-weight: bold; margin-top: 20px; padding: 12px; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <h2>🎙️ FORM PPDB BERBASIS SUARA</h2>
+    
+    <form id="ppdbForm">
+        <!-- Input No Pendaftaran -->
+        <div class="form-group">
+            <label>No. Pendaftaran (Input Manual/Suara)</label>
+            <div class="input-row">
+                <input type="text" id="noDaftar" placeholder="Contoh: 001">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('noDaftar')">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Input Nama Murid -->
+        <div class="form-group">
+            <label>Nama Murid</label>
+            <div class="input-row">
+                <input type="text" id="nama" placeholder="Bicara nama murid...">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('nama')">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Input NIK -->
+        <div class="form-group">
+            <label>No NIK</label>
+            <div class="input-row">
+                <input type="text" id="nik" placeholder="Bicara angka NIK...">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('nik')">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Tempat Lahir -->
+        <div class="form-group">
+            <label>Tempat Lahir</label>
+            <div class="input-row">
+                <input type="text" id="tempatLahir" placeholder="Bicara kota lahir...">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('tempatLahir')">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Tanggal Lahir -->
+        <div class="form-group">
+            <label>Tanggal Lahir</label>
+            <div class="input-row">
+                <input type="text" id="tglLahir" placeholder="Contoh: 2 Mei 2019">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('tglLahir')">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Nama Ayah -->
+        <div class="form-group">
+            <label>Nama Ayah</label>
+            <div class="input-row">
+                <input type="text" id="ayah" placeholder="Bicara nama ayah...">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('ayah')">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Nama Ibu -->
+        <div class="form-group">
+            <label>Nama Ibu</label>
+            <div class="input-row">
+                <input type="text" id="ibu" placeholder="Bicara nama ibu...">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('ibu')">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Alamat -->
+        <div class="form-group">
+            <label>Alamat Tempat Tinggal</label>
+            <div class="input-row">
+                <input type="text" id="alamat" placeholder="Bicara alamat...">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('alamat')">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Pilihan TK -->
+        <div class="form-group">
+            <label>Pilihan TK</label>
+            <select id="pilihanTK">
+                <option value="Ya">Ya</option>
+                <option value="Tidak">Tidak</option>
+            </select>
+        </div>
+
+        <!-- Nama TK -->
+        <div class="form-group">
+            <label>Nama TK (Jika Ya)</label>
+            <div class="input-row">
+                <input type="text" id="namaTK" placeholder="Bicara nama TK...">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('namaTK')">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Jarak -->
+        <div class="form-group">
+            <label>Jarak Rumah ke Sekolah (Km)</label>
+            <div class="input-row">
+                <input type="text" id="jarak" placeholder="Contoh: 1">
+                <button type="button" class="btn-mic" onclick="mulaiDikte('jarak')">🎙️</button>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">💾 SIMPAN KE SPREADSHEET</button>
+    </form>
+
+    <script>
+        // GANTI URL DI BAWAH INI DENGAN URL WEB APP GOOGLE APPS SCRIPT BAPAK
+        const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec";
+
+        // Fungsi Voice Recognition (Suara) bawaan Browser
+        function mulaiDikte(idTarget) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Browser Bapak tidak mendukung fitur suara. Gunakan Google Chrome laptop/HP!");
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'id-ID'; // Dipaksa wajib Bahasa Indonesia
+            recognition.interimResults = false;
+
+            const inputField = document.getElementById(idTarget);
+            const btn = inputField.nextElementSibling;
+
+            recognition.onstart = () => btn.classList.add('listening');
+            recognition.onend = () => btn.classList.remove('listening');
+            
+            recognition.onresult = (event) => {
+                let hasilSuara = event.results[0][0].transcript;
+                // Bersihkan tanda titik di akhir jika ada otomatis dari sistem
+                if(hasilSuara.endsWith('.')) hasilSuara = hasilSuara.slice(0, -1);
+                inputField.value = hasilSuara;
+            };
+
+            recognition.start();
+        }
+
+        // Kirim Data ke Google Spreadsheet saat tombol Simpan diklik
+        document.getElementById('ppdbForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.querySelector('.btn-submit');
+            submitBtn.innerText = "Mengirim data...";
+            submitBtn.disabled = true;
+
+            const payload = {
+                noDaftar: document.getElementById('noDaftar').value,
+                nama: document.getElementById('nama').value,
+                nik: document.getElementById('nik').value,
+                tempatLahir: document.getElementById('tempatLahir').value,
+                tglLahir: document.getElementById('tglLahir').value,
+                ayah: document.getElementById('ayah').value,
+                ibu: document.getElementById('ibu').value,
+                alamat: document.getElementById('alamat').value,
+                pilihanTK: document.getElementById('pilihanTK').value,
+                namaTK: document.getElementById('namaTK').value,
+                jarak: document.getElementById('jarak').value
+            };
+
+            fetch(URL_WEB_APP, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "sukses") {
+                    alert("Mantap Pak! Data masuk ke spreadsheet di baris " + data.baris);
+                    document.getElementById('ppdbForm').reset();
+                } else {
+                    alert("Aduh gagal mengirim: " + data.error);
+                }
+            })
+            .catch(err => alert("Eror koneksi: " + err))
+            .finally(() => {
+                submitBtn.innerText = "💾 SIMPAN KE SPREADSHEET";
+                submitBtn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>
