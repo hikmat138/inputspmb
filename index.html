@@ -17,6 +17,8 @@
         .preview-item { font-size: 14px; margin: 5px 0; color: #334155; }
         .preview-item span { font-weight: bold; color: #0f172a; }
         .btn-submit { background-color: #16a34a; color: white; width: 100%; font-weight: bold; margin-top: 20px; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; display: none; }
+        .key-box { margin-bottom: 20px; padding: 10px; background: #fef08a; border-radius: 6px; font-size: 13px; }
+        .key-box input { width: 80%; padding: 6px; margin-top: 5px; border: 1px solid #ca8a04; border-radius: 4px; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     </style>
 </head>
@@ -26,11 +28,14 @@
     <h2>🎙️ PPDB Suara Pintar (AI)</h2>
     <p class="sub">SDN Ranca Tales</p>
     
-    <!-- HANYA SATU TOMBOL MIKROFON UTAMA -->
+    <div class="key-box">
+        <label for="apiKeyInput">🔑 Masukkan Groq API Key Baru Bapak:</label><br>
+        <input type="password" id="apiKeyInput" placeholder="gsk_...">
+    </div>
+
     <button type="button" id="micUtama" class="btn-main-mic" onclick="toggleDikte()">🎙️</button>
     <div id="status-text">Klik tombol untuk mulai bicara...</div>
     
-    <!-- KOTAK PRATINJAU HASIL ANALISIS AI -->
     <div id="previewBox" class="preview-box">
         <h4>🔍 Hasil Analisis Data (Mohon Dicek):</h4>
         <div id="dataHasil"></div>
@@ -39,18 +44,20 @@
 </div>
 
 <script>
-    // =========================================================================
-    // CONFIGURATION (URL DAN API KEY SUDAH TERPASANG DAN SIAP PAKAI)
-    // =========================================================================
+    // URL Web App Google Apps Script Bapak
     const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec"; 
-    const GROQ_API_KEY = "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";
-    // =========================================================================
 
     let recognition;
     let isListening = false;
     let dataTerpilih = null;
 
     function toggleDikte() {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        if (!apiKey) {
+            alert("Pak, isi dulu API Key Groq yang baru di kotak kuning atas ya!");
+            return;
+        }
+
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) { return alert("Browser tidak mendukung sensor suara."); }
 
@@ -76,7 +83,7 @@
             recognition.onresult = async (event) => {
                 const teksSuara = event.results[0][0].transcript;
                 status.innerText = "🤖 Sedang diproses AI, mohon tunggu...";
-                await prosesDenganAI(teksSuara);
+                await prosesDenganAI(teksSuara, apiKey);
             };
 
             recognition.start();
@@ -85,8 +92,7 @@
         }
     }
 
-    // FUNGSI UTAMA: AI MEMILAH TEKS SUARA MENJADI KOLOM-KOLOM
-    async function prosesDenganAI(teks) {
+    async function prosesDenganAI(teks, apiKey) {
         const prompt = `Kamu adalah sistem PPDB sekolah. Ekstrak teks pendaftaran berikut ke dalam format JSON murni. 
         Teks: "${teks}"
         Format JSON wajib memiliki key: noDaftar, nama, nik, tempatLahir, tglLahir, ayah, ibu, alamat, pilihanTK, namaTK, jarak. 
@@ -99,7 +105,7 @@
             const respon = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${GROQ_API_KEY}`,
+                    "Authorization": `Bearer ${apiKey}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
@@ -110,10 +116,19 @@
             });
 
             const hasilJson = await respon.json();
+            
+            // PROTEKSI ANTI EROR: Cek apakah respons dari server Groq sukses atau membawa pesan eror
+            if (hasilJson.error) {
+                throw new Error(hasilJson.error.message || "API Key salah atau sudah kedaluwarsa.");
+            }
+
+            if (!hasilJson.choices || !hasilJson.choices[0]) {
+                throw new Error("Respons AI kosong atau tidak valid.");
+            }
+
             const teksMentah = hasilJson.choices[0].message.content.trim();
             dataTerpilih = JSON.parse(teksMentah);
 
-            // Tampilkan hasil analisis ke layar agar bapak bisa cek ulang sebelum disimpan
             let htmlData = "";
             const labels = {
                 noDaftar: "No Daftar", nama: "Nama Murid", nik: "NIK", 
@@ -132,12 +147,11 @@
             document.getElementById('status-text').innerText = "✨ Selesai dianalisis!";
 
         } catch (err) {
-            alert("Gagal memproses suara lewat AI: " + err);
-            document.getElementById('status-text').innerText = "Gagal memproses.";
+            alert("Gagal memproses suara lewat AI: " + err.message);
+            document.getElementById('status-text').innerText = "Gagal memproses. Silakan coba lagi.";
         }
     }
 
-    // KIRIM HASIL KE GOOGLE SPREADSHEET BAPAK
     function kirimKeSpreadsheet() {
         const btnKirim = document.getElementById('btnKirim');
         btnKirim.innerText = "Mengirim ke Google Sheets...";
@@ -154,7 +168,7 @@
                 document.getElementById('previewBox').style.display = "none";
                 document.getElementById('status-text').innerText = "Klik tombol untuk mulai bicara...";
             } else {
-                alert("Gagal kirim: " + data.error);
+                alert("Gagal kirim ke Google Sheets: " + data.error);
             }
         })
         .catch(err => alert("Eror jaringan: " + err))
