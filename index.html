@@ -8,14 +8,14 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
         h2 { color: #1e3a8a; margin-bottom: 20px; }
-        .status-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; color: #1e40af; min-height: 50px; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.3s ease; }
+        .status-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; color: #1e40af; min-height: 50px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
         .btn { background: #16a34a; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; transition: 0.2s; }
         .btn:hover { background: #15803d; }
         .btn:disabled { background: #9ca3af; cursor: not-allowed; }
         .control-panel { display: none; margin-top: 15px; justify-content: space-between; gap: 10px; }
         .btn-action { background: #4b5563; color: white; border: none; padding: 8px 15px; font-size: 14px; border-radius: 6px; cursor: pointer; flex: 1; }
         .btn-action:hover { background: #374151; }
-        .log-box { text-align: left; background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-size: 14px; margin-top: 15px; }
+        .log-box { text-align: left; background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px; border-radius: 8px; max-height: 250px; overflow-y: auto; font-size: 14px; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -36,15 +36,22 @@
 </div>
 
 <script>
+    // Taruh URL Web App Google Apps Script hasil deploy terbaru Bapak di bawah ini:
     const DEPLOY_URL = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec";
 
+    // Daftar Pertanyaan Lengkap Sesuai Struktur Kolom B sampai L
     const daftarPertanyaan = [
         { kunci: "no_pendaftaran", teks: "Berapa nomor pendaftarannya?", tipe: "teks" },
         { kunci: "nama_lengkap", teks: "Siapa nama lengkap murid?", tipe: "teks" },
         { kunci: "nik", teks: "Berapa nomor N I K murid?", tipe: "nik" },
-        { kunci: "tanggal_lahir", teks: "Sebutkan tanggal lahirnya?", tipe: "tanggal" },
+        { kunci: "tempat_lahir", teks: "Di mana tempat lahirnya?", tipe: "teks" },
+        { kunci: "tanggal_lahir", teks: "Sebutkan tanggal lahirnya? Contoh 2 Agustus 2000", tipe: "tanggal" },
+        { kunci: "nama_ayah", teks: "Siapa nama ayah kandungnya?", tipe: "teks" },
+        { kunci: "nama_ibu", teks: "Siapa nama ibu kandungnya?", tipe: "teks" },
+        { kunci: "alamat", teks: "Di mana alamat tempat tinggalnya?", tipe: "teks" },
+        { kunci: "pilihan_tk", teks: "Apakah murid lulusan T K? Jawab Ya atau Tidak", tipe: "pilihan" },
         { kunci: "nama_tk", teks: "Apa nama T K asalnya?", tipe: "teks" },
-        { kunci: "pilihan_tk", teks: "Apakah murid lulusan T K? Jawab Ya atau Tidak", tipe: "pilihan" }
+        { kunci: "jarak_km", teks: "Berapa jarak dari rumah ke sekolah dalam kilometer?", tipe: "teks" }
     ];
 
     let indeksSekarang = 0;
@@ -52,22 +59,20 @@
     let micHarusAktif = false; 
 
     const pengenalSuara = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!pengenalSuara) {
-        document.getElementById("status").innerText = "Browser Anda tidak mendukung fitur rekam suara. Gunakan Google Chrome!";
-        document.getElementById("btnMulai").disabled = true;
-    }
-
     const recognizer = pengenalSuara ? new pengenalSuara() : null;
+    
     if(recognizer) {
         recognizer.lang = 'id-ID';
         recognizer.interimResults = false;
         recognizer.maxAlternatives = 1;
-        // Diubah ke false agar sistem langsung menangkap frasa final begitu Anda berhenti berbicara agak lama
         recognizer.continuous = false; 
+    } else {
+        document.getElementById("status").innerText = "Browser tidak mendukung suara. Gunakan Google Chrome!";
+        document.getElementById("btnMulai").disabled = true;
     }
 
     function bicara(teks, callback) {
-        window.speechSynthesis.cancel(); // Hentikan paksa ucapan asisten sebelumnya jika menumpuk
+        window.speechSynthesis.cancel(); 
         const synth = window.speechSynthesis;
         const utterThis = new SpeechSynthesisUtterance(teks);
         utterThis.lang = 'id-ID';
@@ -89,14 +94,12 @@
         if (indeksSekarang < daftarPertanyaan.length) {
             let item = daftarPertanyaan[indeksSekarang];
             
-            // Setel UI ke Mode Asisten Berbicara
             document.getElementById("status").style.background = "#eff6ff";
             document.getElementById("status").style.borderColor = "#bfdbfe";
             document.getElementById("status").style.color = "#1e40af";
-            document.getElementById("status").innerText = "🤖 Asisten Berbicara: \"" + item.teks + "\"";
+            document.getElementById("status").innerText = "🤖 Asisten Berbicara...";
             
             bicara(item.teks, () => {
-                // Aktifkan pemicu Mic
                 micHarusAktif = true;
                 aktifkanMic();
             });
@@ -107,73 +110,69 @@
             document.getElementById("status").style.borderColor = "#bbf7d0";
             document.getElementById("status").style.color = "#166534";
             document.getElementById("status").innerText = "⏳ Selesai! Mengirim data ke Google Spreadsheet...";
-            bicara("Data lengkap, memproses penyimpanan ke spreadsheet.", kirimKeSpreadsheet);
+            bicara("Data lengkap, memproses penyimpanan.", kirimKeSpreadsheet);
         }
     }
 
     function aktifkanMic() {
         if (!micHarusAktif) return;
-        
         let item = daftarPertanyaan[indeksSekarang];
         document.getElementById("status").style.background = "#fef2f2";
         document.getElementById("status").style.borderColor = "#fca5a5";
         document.getElementById("status").style.color = "#b91c1c";
-        document.getElementById("status").innerText = "🔴 Silakan Bicara untuk: " + item.kunci.replace('_', ' ');
+        document.getElementById("status").innerText = "🔴 Silakan Bicara untuk: " + item.kunci.toUpperCase().replace(/_/g, ' ');
         
-        try {
-            recognizer.start();
-        } catch(e) {
-            // Mengabaikan error jika mikrofon ternyata sudah berjalan di latar belakang
-            console.log("Mic status: Active");
-        }
+        try { recognizer.start(); } catch(e) {}
     }
 
     if(recognizer) {
         recognizer.onresult = function(event) {
-            micHarusAktif = false; // Matikan bendera pemicu karena data sudah masuk
+            micHarusAktif = false; 
             let hasilSuara = event.results[0][0].transcript;
             let item = daftarPertanyaan[indeksSekarang];
+            let TeksLogTampilan = hasilSuara; // buat cadangan teks asli untuk ditampilkan di log web
 
-            // 1. Format Tanggal Otomatis
+            // 1. Perbaikan Konversi Tanggal agar Valid Dikirim ke Google Sheets
             if (item.tipe === "tanggal") {
-                hasilSuara = formatTanggalIndo(hasilSuara);
+                let tanggalTerformat = formatTanggalKeISO(hasilSuara);
+                if(tanggalTerformat !== null) {
+                    hasilSuara = tanggalTerformat; // Berupa string "YYYY-MM-DD"
+                }
             }
             
-            // 2. Format NIK Otomatis
+            // 2. Format NIK Otomatis (Bersihkan spasi)
             if (item.tipe === "nik") {
                 hasilSuara = hasilSuara.replace(/\s+/g, ''); 
+                TeksLogTampilan = hasilSuara;
             }
 
             // 3. Format Pilihan Ya atau Tidak
             if (item.tipe === "pilihan") {
                 if (hasilSuara.toLowerCase().includes("ya")) hasilSuara = "Ya";
                 else if (hasilSuara.toLowerCase().includes("tidak")) hasilSuara = "Tidak";
-                else hasilSuara = "Tidak"; 
+                else hasilSuara = "Tidak";
+                TeksLogTampilan = hasilSuara;
             }
 
-            // Simpan hasil ke objek data
+            // Simpan hasil data
             dataHasil[item.kunci] = hasilSuara;
             
-            // Cetak di log box layar browser
-            document.getElementById("logBox").innerHTML += `<b>${item.kunci}:</b> ${hasilSuara}<br>`;
+            // Cetak ke Log Box Layar
+            document.getElementById("logBox").innerHTML += `<b>${item.kunci}:</b> ${TeksLogTampilan}<br>`;
             
             indeksSekarang++;
             setTimeout(prosesPertanyaan, 800);
         };
 
-        // KUNCI UTAMA ANTI-MACET: Jika mic mati sendiri padahal user belum beres input data, paksa nyalakan lagi!
         recognizer.onend = function() {
             if (micHarusAktif) {
-                console.log("Mic sempat timeout/mati sendiri. Menyalakan ulang otomatis...");
                 setTimeout(aktifkanMic, 300);
             }
         };
 
         recognizer.onerror = function(event) {
-            console.log("Speech Error Info: ", event.error);
-            // Jangan hentikan form jika ada noise atau eror diam, biarkan onend yang melakukan restart mic
             if (event.error === 'no-speech') {
-                document.getElementById("status").innerText = "⚠️ Menunggu suara Anda, silakan bicara, Pak...";
+                document.getElementById("status").innerText = "⚠️ Menunggu suara Anda, silakan bicara...";
             }
         };
     }
@@ -194,24 +193,27 @@
         setTimeout(prosesPertanyaan, 400);
     }
 
-    function formatTanggalIndo(teksSuara) {
+    // Fungsi canggih pengubah kata tanggal Indonesia menjadi format baku YYYY-MM-DD
+    function formatTanggalKeISO(teksSuara) {
         const bulanIndo = {
-            "januari": 1, "februari": 2, "maret": 3, "april": 4, "mei": 5, "juni": 6,
-            "juli": 7, "agustus": 8, "september": 9, "oktober": 10, "november": 11, "desember": 12
+            "januari": "01", "februari": "02", "maret": "03", "april": "04", "mei": "05", "juni": "06",
+            "juli": "07", "agustus": "08", "september": "09", "oktober": "10", "november": "11", "desember": "12"
         };
         
         let bersih = teksSuara.toLowerCase().replace(/-/g, " ");
         let bagian = bersih.split(" ");
         
         if (bagian.length >= 3) {
-            let tgl = parseInt(bagian[0]);
+            let tgl = bagian[0].padStart(2, '0'); // Contoh: "2" jadi "02"
             let blnKata = bagian[1];
-            let thn = parseInt(bagian[2]);
-            let bln = bulanIndo[blnKata] || 1;
+            let thn = bagian[2];
             
-            return `${bln}/${tgl}/${thn}`; 
+            let bln = bulanIndo[blnKata] || "01";
+            
+            // Mengembalikan string berformat "YYYY-MM-DD"
+            return `${thn}-${bln}-${tgl}`; 
         }
-        return teksSuara; 
+        return null; 
     }
 
     function kirimKeSpreadsheet() {
@@ -225,7 +227,7 @@
             bicara("Alhamdulillah, data sukses disimpan ke spreadsheet.");
             document.getElementById("btnMulai").disabled = false;
         }).catch(err => {
-            document.getElementById("status").innerText = "Gagal mengirim data, periksa koneksi internet.";
+            document.getElementById("status").innerText = "Gagal mengirim data.";
             document.getElementById("btnMulai").disabled = false;
         });
     }
