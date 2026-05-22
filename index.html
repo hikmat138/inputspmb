@@ -8,11 +8,14 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
         h2 { color: #1e3a8a; margin-bottom: 20px; }
-        .status-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; color: #1e40af; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+        .status-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; color: #1e40af; min-height: 50px; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.3s ease; }
         .btn { background: #16a34a; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; transition: 0.2s; }
         .btn:hover { background: #15803d; }
         .btn:disabled { background: #9ca3af; cursor: not-allowed; }
-        .log-box { text-align: left; background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px; border-radius: 8px; max-height: 150px; overflow-y: auto; font-size: 14px; margin-top: 15px; }
+        .control-panel { display: none; margin-top: 15px; justify-content: space-between; gap: 10px; }
+        .btn-action { background: #4b5563; color: white; border: none; padding: 8px 15px; font-size: 14px; border-radius: 6px; cursor: pointer; flex: 1; }
+        .btn-action:hover { background: #374151; }
+        .log-box { text-align: left; background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-size: 14px; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -22,16 +25,19 @@
     <div id="status" class="status-box">Klik tombol di bawah untuk memulai pengisian data...</div>
     <button id="btnMulai" class="btn" onclick="mulaiForm()">▶️ Mulai Pengisian</button>
     
+    <div id="controlPanel" class="control-panel">
+        <button class="btn-action" onclick="ulangiPertanyaan()">🔄 Ulangi Bicara</button>
+        <button class="btn-action" onclick="lewatiPertanyaan()">⏭️ Lewati</button>
+    </div>
+    
     <div class="log-box" id="logBox">
         <strong>Log Input Terisi:</strong><br>
     </div>
 </div>
 
 <script>
-    // URL Web App Google Apps Script Anda (Ganti dengan URL hasil deploy Anda nanti)
     const DEPLOY_URL = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec";
 
-    // Daftar pertanyaan berurutan sesuai kolom formulir
     const daftarPertanyaan = [
         { kunci: "no_pendaftaran", teks: "Berapa nomor pendaftarannya?", tipe: "teks" },
         { kunci: "nama_lengkap", teks: "Siapa nama lengkap murid?", tipe: "teks" },
@@ -43,6 +49,7 @@
 
     let indeksSekarang = 0;
     let dataHasil = {};
+    let micHarusAktif = false; 
 
     const pengenalSuara = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!pengenalSuara) {
@@ -55,10 +62,12 @@
         recognizer.lang = 'id-ID';
         recognizer.interimResults = false;
         recognizer.maxAlternatives = 1;
+        // Diubah ke false agar sistem langsung menangkap frasa final begitu Anda berhenti berbicara agak lama
+        recognizer.continuous = false; 
     }
 
-    // Fungsi utama Asisten Berbicara
     function bicara(teks, callback) {
+        window.speechSynthesis.cancel(); // Hentikan paksa ucapan asisten sebelumnya jika menumpuk
         const synth = window.speechSynthesis;
         const utterThis = new SpeechSynthesisUtterance(teks);
         utterThis.lang = 'id-ID';
@@ -71,6 +80,7 @@
         indeksSekarang = 0;
         dataHasil = {};
         document.getElementById("btnMulai").disabled = true;
+        document.getElementById("controlPanel").style.display = "flex";
         document.getElementById("logBox").innerHTML = "<strong>Log Input Terisi:</strong><br>";
         prosesPertanyaan();
     }
@@ -78,67 +88,112 @@
     function prosesPertanyaan() {
         if (indeksSekarang < daftarPertanyaan.length) {
             let item = daftarPertanyaan[indeksSekarang];
-            document.getElementById("status").innerText = "🤖 Asisten mendengarkan: " + item.teks;
             
-            // Asisten bertanya terlebih dahulu, selesai bertanya baru mengaktifkan mic perekam suara
+            // Setel UI ke Mode Asisten Berbicara
+            document.getElementById("status").style.background = "#eff6ff";
+            document.getElementById("status").style.borderColor = "#bfdbfe";
+            document.getElementById("status").style.color = "#1e40af";
+            document.getElementById("status").innerText = "🤖 Asisten Berbicara: \"" + item.teks + "\"";
+            
             bicara(item.teks, () => {
-                document.getElementById("status").style.background = "#fef2f2";
-                document.getElementById("status").style.borderColor = "#fca5a5";
-                document.getElementById("status").style.color = "#b91c1c";
-                document.getElementById("status").innerText = "🔴 Silakan Berbicara Sekarang...";
-                recognizer.start();
+                // Aktifkan pemicu Mic
+                micHarusAktif = true;
+                aktifkanMic();
             });
         } else {
+            micHarusAktif = false;
+            document.getElementById("controlPanel").style.display = "none";
+            document.getElementById("status").style.background = "#f0fdf4";
+            document.getElementById("status").style.borderColor = "#bbf7d0";
+            document.getElementById("status").style.color = "#166534";
             document.getElementById("status").innerText = "⏳ Selesai! Mengirim data ke Google Spreadsheet...";
             bicara("Data lengkap, memproses penyimpanan ke spreadsheet.", kirimKeSpreadsheet);
         }
     }
 
+    function aktifkanMic() {
+        if (!micHarusAktif) return;
+        
+        let item = daftarPertanyaan[indeksSekarang];
+        document.getElementById("status").style.background = "#fef2f2";
+        document.getElementById("status").style.borderColor = "#fca5a5";
+        document.getElementById("status").style.color = "#b91c1c";
+        document.getElementById("status").innerText = "🔴 Silakan Bicara untuk: " + item.kunci.replace('_', ' ');
+        
+        try {
+            recognizer.start();
+        } catch(e) {
+            // Mengabaikan error jika mikrofon ternyata sudah berjalan di latar belakang
+            console.log("Mic status: Active");
+        }
+    }
+
     if(recognizer) {
         recognizer.onresult = function(event) {
+            micHarusAktif = false; // Matikan bendera pemicu karena data sudah masuk
             let hasilSuara = event.results[0][0].transcript;
             let item = daftarPertanyaan[indeksSekarang];
-            
-            document.getElementById("status").style.background = "#eff6ff";
-            document.getElementById("status").style.borderColor = "#bfdbfe";
-            document.getElementById("status").style.color = "#1e40af";
 
-            // FORMULASI ATURAN KHUSUS (DARI INSTRUKSI):
-            
-            // 1. Format Tanggal Otomatis (Contoh: "9 Agustus 2000" -> 09/08/2000)
+            // 1. Format Tanggal Otomatis
             if (item.tipe === "tanggal") {
                 hasilSuara = formatTanggalIndo(hasilSuara);
             }
             
-            // 2. Format NIK Otomatis (Hapus spasi, pastikan ditambah tanda petik satu "'" di awal script pengiriman)
+            // 2. Format NIK Otomatis
             if (item.tipe === "nik") {
-                hasilSuara = hasilSuara.replace(/\s+/g, ''); // bersihkan spasi jika ada pencatatan angka terpisah
+                hasilSuara = hasilSuara.replace(/\s+/g, ''); 
             }
 
             // 3. Format Pilihan Ya atau Tidak
             if (item.tipe === "pilihan") {
                 if (hasilSuara.toLowerCase().includes("ya")) hasilSuara = "Ya";
                 else if (hasilSuara.toLowerCase().includes("tidak")) hasilSuara = "Tidak";
-                else hasilSuara = "Tidak"; // Default jika tidak jelas
+                else hasilSuara = "Tidak"; 
             }
 
-            // Simpan data
+            // Simpan hasil ke objek data
             dataHasil[item.kunci] = hasilSuara;
             
-            // Cetak di Log layar browser
+            // Cetak di log box layar browser
             document.getElementById("logBox").innerHTML += `<b>${item.kunci}:</b> ${hasilSuara}<br>`;
             
             indeksSekarang++;
-            setTimeout(prosesPertanyaan, 1000);
+            setTimeout(prosesPertanyaan, 800);
+        };
+
+        // KUNCI UTAMA ANTI-MACET: Jika mic mati sendiri padahal user belum beres input data, paksa nyalakan lagi!
+        recognizer.onend = function() {
+            if (micHarusAktif) {
+                console.log("Mic sempat timeout/mati sendiri. Menyalakan ulang otomatis...");
+                setTimeout(aktifkanMic, 300);
+            }
         };
 
         recognizer.onerror = function(event) {
-            document.getElementById("status").innerText = "Suara tidak terdengar jelas, mengulangi pertanyaan...";
-            setTimeout(prosesPertanyaan, 1500);
+            console.log("Speech Error Info: ", event.error);
+            // Jangan hentikan form jika ada noise atau eror diam, biarkan onend yang melakukan restart mic
+            if (event.error === 'no-speech') {
+                document.getElementById("status").innerText = "⚠️ Menunggu suara Anda, silakan bicara, Pak...";
+            }
         };
     }
 
-    // Fungsi Pengubah Kata Tanggal Indonesia ke Format MM/DD/YYYY agar dikenali Spreadsheet sebagai format DATE murni
+    function ulangiPertanyaan() {
+        micHarusAktif = false;
+        try { recognizer.stop(); } catch(e) {}
+        setTimeout(prosesPertanyaan, 400);
+    }
+
+    function lewatiPertanyaan() {
+        micHarusAktif = false;
+        try { recognizer.stop(); } catch(e) {}
+        let item = daftarPertanyaan[indeksSekarang];
+        dataHasil[item.kunci] = "-";
+        document.getElementById("logBox").innerHTML += `<b>${item.kunci}:</b> (Dilewati)<br>`;
+        indeksSekarang++;
+        setTimeout(prosesPertanyaan, 400);
+    }
+
     function formatTanggalIndo(teksSuara) {
         const bulanIndo = {
             "januari": 1, "februari": 2, "maret": 3, "april": 4, "mei": 5, "juni": 6,
@@ -152,17 +207,14 @@
             let tgl = parseInt(bagian[0]);
             let blnKata = bagian[1];
             let thn = parseInt(bagian[2]);
-            
             let bln = bulanIndo[blnKata] || 1;
             
-            // Mengembalikan format standar tanggal komputer agar dikenali Google Sheets sebagai objek Tanggal (Date), bukan Plain Text
             return `${bln}/${tgl}/${thn}`; 
         }
         return teksSuara; 
     }
 
     function kirimKeSpreadsheet() {
-        // Kirim data via POST ke Google Apps Script API
         fetch(DEPLOY_URL, {
             method: "POST",
             mode: "no-cors",
