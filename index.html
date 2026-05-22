@@ -3,76 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PPDB Suara AI - SDN Ranca Tales</title>
+    <title>PPDB Suara Berurutan - SDN Ranca Tales</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; margin: 30px auto; padding: 20px; background-color: #f1f5f9; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background-color: #f1f5f9; }
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); text-align: center; }
         h2 { margin-bottom: 5px; color: #1e293b; }
         p.sub { color: #64748b; font-size: 14px; margin-bottom: 25px; }
-        .btn-main-mic { width: 90px; height: 90px; border-radius: 50%; border: none; background-color: #2563eb; color: white; font-size: 36px; cursor: pointer; transition: all 0.3s; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+        
+        /* TOMBOL MIKROFON UTAMA DI TENGAH */
+        .mic-container { margin: 20px 0; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .btn-main-mic { width: 100px; height: 100px; border-radius: 50%; border: none; background-color: #2563eb; color: white; font-size: 40px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
         .btn-main-mic.listening { background-color: #dc2626; animation: pulse 1.2s infinite; box-shadow: 0 4px 12px rgba(220,38,38,0.3); }
-        #status-text { font-weight: bold; color: #475569; margin-bottom: 20px; min-height: 20px; }
-        .preview-box { text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-top: 20px; display: none; }
-        .preview-box h4 { margin-top: 0; color: #334155; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
-        .preview-item { font-size: 14px; margin: 5px 0; color: #334155; }
-        .preview-item span { font-weight: bold; color: #0f172a; }
-        .btn-submit { background-color: #16a34a; color: white; width: 100%; font-weight: bold; margin-top: 20px; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; display: none; }
-        .key-box { margin-bottom: 20px; padding: 10px; background: #fef08a; border-radius: 6px; font-size: 13px; }
-        .key-box input { width: 80%; padding: 6px; margin-top: 5px; border: 1px solid #ca8a04; border-radius: 4px; }
+        #status-text { font-weight: bold; color: #2563eb; margin-top: 10px; min-height: 20px; font-size: 15px; }
+        
+        /* FORM LAYOUT */
+        .form-grid { text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .form-group { background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .form-group.active-input { border: 2px solid #2563eb; background: #eff6ff; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; font-size: 13px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 15px; box-sizing: border-box; }
+        input:focus { outline: none; border-color: #2563eb; background-color: #fff; }
+        
+        .full-width { grid-column: span 2; }
+        .btn-submit { background-color: #16a34a; color: white; width: 100%; font-weight: bold; margin-top: 25px; padding: 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; box-shadow: 0 4px 6px rgba(22,163,74,0.2); }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>🎙️ PPDB Suara Pintar (AI)</h2>
+    <h2>📋 Form PPDB Suara Berurutan</h2>
     <p class="sub">SDN Ranca Tales</p>
     
-    <div class="key-box">
-        <label for="apiKeyInput">🔑 Masukkan Groq API Key Baru Bapak:</label><br>
-        <input type="password" id="apiKeyInput" placeholder="gsk_...">
+    <div class="mic-container">
+        <button type="button" id="micUtama" class="btn-main-mic" onclick="toggleDikte()">🎙️</button>
+        <div id="status-text">Pilih salah satu kotak di bawah, lalu klik mikrofon</div>
     </div>
 
-    <button type="button" id="micUtama" class="btn-main-mic" onclick="toggleDikte()">🎙️</button>
-    <div id="status-text">Klik tombol untuk mulai bicara...</div>
-    
-    <div id="previewBox" class="preview-box">
-        <h4>🔍 Hasil Analisis Data (Mohon Dicek):</h4>
-        <div id="dataHasil"></div>
-        <button type="button" id="btnKirim" class="btn-submit" onclick="kirimKeSpreadsheet()">💾 COCOK, SIMPAN DATA</button>
-    </div>
+    <form id="ppdbForm">
+        <div class="form-grid">
+            <div class="form-group" id="group_noDaftar">
+                <label>1. No. Pendaftaran</label>
+                <input type="text" id="noDaftar" placeholder="Klik disini lalu mic" onfocus="tandaiAktif('noDaftar')">
+            </div>
+
+            <div class="form-group" id="group_nama">
+                <label>2. Nama Murid</label>
+                <input type="text" id="nama" placeholder="Menunggu giliran..." onfocus="tandaiAktif('nama')">
+            </div>
+
+            <div class="form-group" id="group_nik">
+                <label>3. No NIK</label>
+                <input type="text" id="nik" placeholder="Menunggu giliran..." onfocus="tandaiAktif('nik')">
+            </div>
+
+            <div class="form-group" id="group_tempatLahir">
+                <label>4. Tempat Lahir</label>
+                <input type="text" id="tempatLahir" placeholder="Menunggu giliran..." onfocus="tandaiAktif('tempatLahir')">
+            </div>
+
+            <div class="form-group" id="group_tglLahir">
+                <label>5. Tanggal Lahir</label>
+                <input type="text" id="tglLahir" placeholder="Menunggu giliran..." onfocus="tandaiAktif('tglLahir')">
+            </div>
+
+            <div class="form-group" id="group_ayah">
+                <label>6. Nama Ayah</label>
+                <input type="text" id="ayah" placeholder="Menunggu giliran..." onfocus="tandaiAktif('ayah')">
+            </div>
+
+            <div class="form-group" id="group_ibu">
+                <label>7. Nama Ibu</label>
+                <input type="text" id="ibu" placeholder="Menunggu giliran..." onfocus="tandaiAktif('ibu')">
+            </div>
+
+            <div class="form-group" id="group_jarak">
+                <label>8. Jarak Rumah (Km)</label>
+                <input type="text" id="jarak" placeholder="Menunggu giliran..." onfocus="tandaiAktif('jarak')">
+            </div>
+
+            <div class="form-group full-width" id="group_alamat">
+                <label>9. Alamat Tempat Tinggal</label>
+                <input type="text" id="alamat" placeholder="Menunggu giliran..." onfocus="tandaiAktif('alamat')">
+            </div>
+
+            <div class="form-group" id="group_pilihanTK">
+                <label>10. Pilihan TK</label>
+                <select id="pilihanTK" onchange="ArahkanSetelahTK()">
+                    <option value="Ya">Ya</option>
+                    <option value="Tidak">Tidak</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="group_namaTK">
+                <label>11. Nama TK</label>
+                <input type="text" id="namaTK" placeholder="Isi jika pilihan TK 'Ya'" onfocus="tandaiAktif('namaTK')">
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">💾 SIMPAN DATA KE SPREADSHEET</button>
+    </form>
 </div>
 
 <script>
     // URL Web App Google Apps Script Bapak
     const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec"; 
 
+    // Urutan otomatis perpindahan kolom inputan
+    const urutanInput = ["noDaftar", "nama", "nik", "tempatLahir", "tglLahir", "ayah", "ibu", "jarak", "alamat", "namaTK"];
+    let idInputAktif = "noDaftar"; 
     let recognition;
     let isListening = false;
-    let dataTerpilih = null;
 
+    // Fungsi menandai kotak mana yang sedang aktif diisi
+    function tandaiAktif(id) {
+        idInputAktif = id;
+        // Hapus tanda biru di semua kotak
+        document.querySelectorAll('.form-group').forEach(el => el.classList.remove('active-input'));
+        // Tambah tanda biru di kotak yang dipilih
+        document.getElementById('group_' + id).classList.add('active-input');
+        
+        const labelTeks = document.querySelector(`#group_${id} label`).innerText;
+        document.getElementById('status-text').innerText = "Kotak Aktif: " + labelTeks.substring(3) + ". Klik Mic!";
+    }
+
+    // Fungsi menyalakan sensor suara Google Chrome
     function toggleDikte() {
-        const apiKey = document.getElementById('apiKeyInput').value.trim();
-        if (!apiKey) {
-            alert("Pak, isi dulu API Key Groq yang baru di kotak kuning atas ya!");
-            return;
-        }
-
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) { return alert("Browser tidak mendukung sensor suara."); }
+        if (!SpeechRecognition) { return alert("Browser tidak mendukung fitur suara."); }
 
         const btn = document.getElementById('micUtama');
         const status = document.getElementById('status-text');
+        const inputTarget = document.getElementById(idInputAktif);
 
         if (!isListening) {
             recognition = new SpeechRecognition();
-            recognition.lang = 'id-ID';
+            recognition.lang = 'id-ID'; // Wajib Bahasa Indonesia
             recognition.interimResults = false;
 
             recognition.onstart = () => {
                 isListening = true;
                 btn.classList.add('listening');
-                status.innerText = "🔴 Mendengarkan... Sebutkan data murid sekaligus!";
+                status.innerText = "🔴 Mendengarkan... Silakan bicara sekarang.";
             };
 
             recognition.onend = () => {
@@ -80,10 +152,15 @@
                 btn.classList.remove('listening');
             };
 
-            recognition.onresult = async (event) => {
-                const teksSuara = event.results[0][0].transcript;
-                status.innerText = "🤖 Sedang diproses AI, mohon tunggu...";
-                await prosesDenganAI(teksSuara, apiKey);
+            recognition.onresult = (event) => {
+                let hasilSuara = event.results[0][0].transcript;
+                if(hasilSuara.endsWith('.')) hasilSuara = hasilSuara.slice(0, -1);
+                
+                // Masukkan hasil ketikan suara ke kotak aktif
+                inputTarget.value = hasilSuara;
+                
+                // LOGIKA OTOMATIS PINDAH KE KOTAK BERIKUTNYA
+                pindahKeInputBerikutnya();
             };
 
             recognition.start();
@@ -92,91 +169,75 @@
         }
     }
 
-    async function prosesDenganAI(teks, apiKey) {
-        const prompt = `Kamu adalah sistem PPDB sekolah. Ekstrak teks pendaftaran berikut ke dalam format JSON murni. 
-        Teks: "${teks}"
-        Format JSON wajib memiliki key: noDaftar, nama, nik, tempatLahir, tglLahir, ayah, ibu, alamat, pilihanTK, namaTK, jarak. 
-        Ketentuan nilai:
-        - pilihanTK hanya berisi "Ya" atau "Tidak".
-        - Jika ada kolom yang tidak disebutkan dalam teks, isi dengan "".
-        - Berikan hasil HANYA objek JSON saja, tanpa penjelasan kata-kata tambahan apapun.`;
-
-        try {
-            const respon = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${apiKey}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: "llama3-8b-8192",
-                    messages: [{ role: "user", content: prompt }],
-                    temperature: 0.1
-                })
-            });
-
-            const hasilJson = await respon.json();
+    function pindahKeInputBerikutnya() {
+        let indexSekarang = urutanInput.indexOf(idInputAktif);
+        
+        if (indexSekarang !== -1 && indexSekarang < urutanInput.length - 1) {
+            let idBerikutnya = urutanInput[indexSekarang + 1];
             
-            // PROTEKSI ANTI EROR: Cek apakah respons dari server Groq sukses atau membawa pesan eror
-            if (hasilJson.error) {
-                throw new Error(hasilJson.error.message || "API Key salah atau sudah kedaluwarsa.");
-            }
-
-            if (!hasilJson.choices || !hasilJson.choices[0]) {
-                throw new Error("Respons AI kosong atau tidak valid.");
-            }
-
-            const teksMentah = hasilJson.choices[0].message.content.trim();
-            dataTerpilih = JSON.parse(teksMentah);
-
-            let htmlData = "";
-            const labels = {
-                noDaftar: "No Daftar", nama: "Nama Murid", nik: "NIK", 
-                tempatLahir: "Tempat Lahir", tglLahir: "Tgl Lahir", 
-                ayah: "Nama Ayah", ibu: "Nama Ibu", alamat: "Alamat", 
-                pilihanTK: "Pilihan TK", namaTK: "Nama TK", jarak: "Jarak (Km)"
-            };
-
-            for (let key in dataTerpilih) {
-                htmlData += `<div class="preview-item"><span>${labels[key] || key}:</span> ${dataTerpilih[key]}</div>`;
-            }
-
-            document.getElementById('dataHasil').innerHTML = htmlData;
-            document.getElementById('previewBox').style.display = "block";
-            document.getElementById('btnKirim').style.display = "block";
-            document.getElementById('status-text').innerText = "✨ Selesai dianalisis!";
-
-        } catch (err) {
-            alert("Gagal memproses suara lewat AI: " + err.message);
-            document.getElementById('status-text').innerText = "Gagal memproses. Silakan coba lagi.";
+            // Fokuskan kursor otomatis ke kotak berikutnya
+            document.getElementById(idBerikutnya).focus();
+        } else {
+            document.getElementById('status-text').innerText = "Semua kolom suara selesai diisi! Silakan klik Simpan.";
         }
     }
 
-    function kirimKeSpreadsheet() {
-        const btnKirim = document.getElementById('btnKirim');
-        btnKirim.innerText = "Mengirim ke Google Sheets...";
-        btnKirim.disabled = true;
+    // Kasus khusus untuk pilihan dropdown TK
+    function ArahkanSetelahTK() {
+        const pilihan = document.getElementById('pilihanTK').value;
+        if(pilihan === "Tidak") {
+            document.getElementById('namaTK').value = "-";
+            // Jika tidak TK, langsung lompat fokus ke tombol simpan
+            document.querySelector('.btn-submit').focus();
+            document.getElementById('status-text').innerText = "Data selesai, silakan klik tombol Simpan Data.";
+        } else {
+            document.getElementById('namaTK').focus();
+        }
+    }
+
+    // Kirim Data Akhir ke Google Spreadsheet Bapak
+    document.getElementById('ppdbForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.querySelector('.btn-submit');
+        submitBtn.innerText = "Mengirim data ke Google Sheets...";
+        submitBtn.disabled = true;
+
+        const payload = {
+            noDaftar: document.getElementById('noDaftar').value,
+            nama: document.getElementById('nama').value,
+            nik: document.getElementById('nik').value,
+            tempatLahir: document.getElementById('tempatLahir').value,
+            tglLahir: document.getElementById('tglLahir').value,
+            ayah: document.getElementById('ayah').value,
+            ibu: document.getElementById('ibu').value,
+            alamat: document.getElementById('alamat').value,
+            pilihanTK: document.getElementById('pilihanTK').value,
+            namaTK: document.getElementById('namaTK').value,
+            jarak: document.getElementById('jarak').value
+        };
 
         fetch(URL_WEB_APP, {
             method: "POST",
-            body: JSON.stringify(dataTerpilih)
+            body: JSON.stringify(payload)
         })
         .then(res => res.json())
         .then(data => {
             if(data.status === "sukses") {
-                alert("Data berhasil masuk ke Spreadsheet baris " + data.baris);
-                document.getElementById('previewBox').style.display = "none";
-                document.getElementById('status-text').innerText = "Klik tombol untuk mulai bicara...";
+                alert("Alhamdulillah, Data Murid Sukses Masuk ke Spreadsheet baris " + data.baris);
+                document.getElementById('ppdbForm').reset();
+                // Kembalikan fokus ke kotak pertama untuk murid selanjutnya
+                document.getElementById('noDaftar').focus();
             } else {
-                alert("Gagal kirim ke Google Sheets: " + data.error);
+                alert("Gagal kirim: " + data.error);
             }
         })
         .catch(err => alert("Eror jaringan: " + err))
         .finally(() => {
-            btnKirim.innerText = "💾 COCOK, SIMPAN DATA";
-            btnKirim.disabled = false;
+            submitBtn.innerText = "💾 SIMPAN DATA KE SPREADSHEET";
+            submitBtn.disabled = false;
         });
-    }
+    });
 </script>
 </body>
 </html>
