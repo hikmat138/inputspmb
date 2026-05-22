@@ -3,241 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PPDB Suara Berurutan - SDN Ranca Tales</title>
+    <title>Form Suara PPDB SDN Ranca Tales</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background-color: #f1f5f9; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); text-align: center; }
-        h2 { margin-bottom: 5px; color: #1e293b; }
-        p.sub { color: #64748b; font-size: 14px; margin-bottom: 25px; }
-        
-        /* TOMBOL MIKROFON UTAMA DI TENGAH */
-        .mic-container { margin: 20px 0; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .btn-main-mic { width: 100px; height: 100px; border-radius: 50%; border: none; background-color: #2563eb; color: white; font-size: 40px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
-        .btn-main-mic.listening { background-color: #dc2626; animation: pulse 1.2s infinite; box-shadow: 0 4px 12px rgba(220,38,38,0.3); }
-        #status-text { font-weight: bold; color: #2563eb; margin-top: 10px; min-height: 20px; font-size: 15px; }
-        
-        /* FORM LAYOUT */
-        .form-grid { text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .form-group { background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .form-group.active-input { border: 2px solid #2563eb; background: #eff6ff; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; font-size: 13px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 15px; box-sizing: border-box; }
-        input:focus { outline: none; border-color: #2563eb; background-color: #fff; }
-        
-        .full-width { grid-column: span 2; }
-        .btn-submit { background-color: #16a34a; color: white; width: 100%; font-weight: bold; margin-top: 25px; padding: 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; box-shadow: 0 4px 6px rgba(22,163,74,0.2); }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        h2 { color: #1e3a8a; margin-bottom: 20px; }
+        .status-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; color: #1e40af; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+        .btn { background: #16a34a; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn:hover { background: #15803d; }
+        .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .log-box { text-align: left; background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px; border-radius: 8px; max-height: 150px; overflow-y: auto; font-size: 14px; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>📋 Form PPDB Suara Berurutan</h2>
-    <p class="sub">SDN Ranca Tales</p>
+<div class="container">
+    <h2>🎙️ Form PPDB Berbasis Suara</h2>
+    <div id="status" class="status-box">Klik tombol di bawah untuk memulai pengisian data...</div>
+    <button id="btnMulai" class="btn" onclick="mulaiForm()">▶️ Mulai Pengisian</button>
     
-    <div class="mic-container">
-        <button type="button" id="micUtama" class="btn-main-mic" onclick="toggleDikte()">🎙️</button>
-        <div id="status-text">Pilih salah satu kotak di bawah, lalu klik mikrofon</div>
+    <div class="log-box" id="logBox">
+        <strong>Log Input Terisi:</strong><br>
     </div>
-
-    <form id="ppdbForm">
-        <div class="form-grid">
-            <div class="form-group" id="group_noDaftar">
-                <label>1. No. Pendaftaran</label>
-                <input type="text" id="noDaftar" placeholder="Klik disini lalu mic" onfocus="tandaiAktif('noDaftar')">
-            </div>
-
-            <div class="form-group" id="group_nama">
-                <label>2. Nama Murid</label>
-                <input type="text" id="nama" placeholder="Menunggu giliran..." onfocus="tandaiAktif('nama')">
-            </div>
-
-            <div class="form-group" id="group_nik">
-                <label>3. No NIK</label>
-                <input type="text" id="nik" placeholder="Menunggu giliran..." onfocus="tandaiAktif('nik')">
-            </div>
-
-            <div class="form-group" id="group_tempatLahir">
-                <label>4. Tempat Lahir</label>
-                <input type="text" id="tempatLahir" placeholder="Menunggu giliran..." onfocus="tandaiAktif('tempatLahir')">
-            </div>
-
-            <div class="form-group" id="group_tglLahir">
-                <label>5. Tanggal Lahir</label>
-                <input type="text" id="tglLahir" placeholder="Menunggu giliran..." onfocus="tandaiAktif('tglLahir')">
-            </div>
-
-            <div class="form-group" id="group_ayah">
-                <label>6. Nama Ayah</label>
-                <input type="text" id="ayah" placeholder="Menunggu giliran..." onfocus="tandaiAktif('ayah')">
-            </div>
-
-            <div class="form-group" id="group_ibu">
-                <label>7. Nama Ibu</label>
-                <input type="text" id="ibu" placeholder="Menunggu giliran..." onfocus="tandaiAktif('ibu')">
-            </div>
-
-            <div class="form-group" id="group_jarak">
-                <label>8. Jarak Rumah (Km)</label>
-                <input type="text" id="jarak" placeholder="Menunggu giliran..." onfocus="tandaiAktif('jarak')">
-            </div>
-
-            <div class="form-group full-width" id="group_alamat">
-                <label>9. Alamat Tempat Tinggal</label>
-                <input type="text" id="alamat" placeholder="Menunggu giliran..." onfocus="tandaiAktif('alamat')">
-            </div>
-
-            <div class="form-group" id="group_pilihanTK">
-                <label>10. Pilihan TK</label>
-                <select id="pilihanTK" onchange="ArahkanSetelahTK()">
-                    <option value="Ya">Ya</option>
-                    <option value="Tidak">Tidak</option>
-                </select>
-            </div>
-
-            <div class="form-group" id="group_namaTK">
-                <label>11. Nama TK</label>
-                <input type="text" id="namaTK" placeholder="Isi jika pilihan TK 'Ya'" onfocus="tandaiAktif('namaTK')">
-            </div>
-        </div>
-
-        <button type="submit" class="btn-submit">💾 SIMPAN DATA KE SPREADSHEET</button>
-    </form>
 </div>
 
 <script>
-    // URL Web App Google Apps Script Bapak
-    const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec"; 
+    // URL Web App Google Apps Script Anda (Ganti dengan URL hasil deploy Anda nanti)
+    const DEPLOY_URL = "https://script.google.com/macros/s/AKfyf.../exec";
 
-    // Urutan otomatis perpindahan kolom inputan
-    const urutanInput = ["noDaftar", "nama", "nik", "tempatLahir", "tglLahir", "ayah", "ibu", "jarak", "alamat", "namaTK"];
-    let idInputAktif = "noDaftar"; 
-    let recognition;
-    let isListening = false;
+    // Daftar pertanyaan berurutan sesuai kolom formulir
+    const daftarPertanyaan = [
+        { kunci: "no_pendaftaran", teks: "Berapa nomor pendaftarannya?", tipe: "teks" },
+        { kunci: "nama_lengkap", teks: "Siapa nama lengkap murid?", tipe: "teks" },
+        { kunci: "nik", teks: "Berapa nomor N I K murid?", tipe: "nik" },
+        { kunci: "tanggal_lahir", teks: "Sebutkan tanggal lahirnya?", tipe: "tanggal" },
+        { kunci: "nama_tk", teks: "Apa nama T K asalnya?", tipe: "teks" },
+        { kunci: "pilihan_tk", teks: "Apakah murid lulusan T K? Jawab Ya atau Tidak", tipe: "pilihan" }
+    ];
 
-    // Fungsi menandai kotak mana yang sedang aktif diisi
-    function tandaiAktif(id) {
-        idInputAktif = id;
-        // Hapus tanda biru di semua kotak
-        document.querySelectorAll('.form-group').forEach(el => el.classList.remove('active-input'));
-        // Tambah tanda biru di kotak yang dipilih
-        document.getElementById('group_' + id).classList.add('active-input');
-        
-        const labelTeks = document.querySelector(`#group_${id} label`).innerText;
-        document.getElementById('status-text').innerText = "Kotak Aktif: " + labelTeks.substring(3) + ". Klik Mic!";
+    let indeksSekarang = 0;
+    let dataHasil = {};
+
+    const pengenalSuara = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!pengenalSuara) {
+        document.getElementById("status").innerText = "Browser Anda tidak mendukung fitur rekam suara. Gunakan Google Chrome!";
+        document.getElementById("btnMulai").disabled = true;
     }
 
-    // Fungsi menyalakan sensor suara Google Chrome
-    function toggleDikte() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) { return alert("Browser tidak mendukung fitur suara."); }
-
-        const btn = document.getElementById('micUtama');
-        const status = document.getElementById('status-text');
-        const inputTarget = document.getElementById(idInputAktif);
-
-        if (!isListening) {
-            recognition = new SpeechRecognition();
-            recognition.lang = 'id-ID'; // Wajib Bahasa Indonesia
-            recognition.interimResults = false;
-
-            recognition.onstart = () => {
-                isListening = true;
-                btn.classList.add('listening');
-                status.innerText = "🔴 Mendengarkan... Silakan bicara sekarang.";
-            };
-
-            recognition.onend = () => {
-                isListening = false;
-                btn.classList.remove('listening');
-            };
-
-            recognition.onresult = (event) => {
-                let hasilSuara = event.results[0][0].transcript;
-                if(hasilSuara.endsWith('.')) hasilSuara = hasilSuara.slice(0, -1);
-                
-                // Masukkan hasil ketikan suara ke kotak aktif
-                inputTarget.value = hasilSuara;
-                
-                // LOGIKA OTOMATIS PINDAH KE KOTAK BERIKUTNYA
-                pindahKeInputBerikutnya();
-            };
-
-            recognition.start();
-        } else {
-            recognition.stop();
-        }
+    const recognizer = pengenalSuara ? new pengenalSuara() : null;
+    if(recognizer) {
+        recognizer.lang = 'id-ID';
+        recognizer.interimResults = false;
+        recognizer.maxAlternatives = 1;
     }
 
-    function pindahKeInputBerikutnya() {
-        let indexSekarang = urutanInput.indexOf(idInputAktif);
-        
-        if (indexSekarang !== -1 && indexSekarang < urutanInput.length - 1) {
-            let idBerikutnya = urutanInput[indexSekarang + 1];
+    // Fungsi utama Asisten Berbicara
+    function bicara(teks, callback) {
+        const synth = window.speechSynthesis;
+        const utterThis = new SpeechSynthesisUtterance(teks);
+        utterThis.lang = 'id-ID';
+        utterThis.rate = 1.0; 
+        utterThis.onend = callback;
+        synth.speak(utterThis);
+    }
+
+    function mulaiForm() {
+        indeksSekarang = 0;
+        dataHasil = {};
+        document.getElementById("btnMulai").disabled = true;
+        document.getElementById("logBox").innerHTML = "<strong>Log Input Terisi:</strong><br>";
+        prosesPertanyaan();
+    }
+
+    function prosesPertanyaan() {
+        if (indeksSekarang < daftarPertanyaan.length) {
+            let item = daftarPertanyaan[indeksSekarang];
+            document.getElementById("status").innerText = "🤖 Asisten mendengarkan: " + item.teks;
             
-            // Fokuskan kursor otomatis ke kotak berikutnya
-            document.getElementById(idBerikutnya).focus();
+            // Asisten bertanya terlebih dahulu, selesai bertanya baru mengaktifkan mic perekam suara
+            bicara(item.teks, () => {
+                document.getElementById("status").style.background = "#fef2f2";
+                document.getElementById("status").style.borderColor = "#fca5a5";
+                document.getElementById("status").style.color = "#b91c1c";
+                document.getElementById("status").innerText = "🔴 Silakan Berbicara Sekarang...";
+                recognizer.start();
+            });
         } else {
-            document.getElementById('status-text').innerText = "Semua kolom suara selesai diisi! Silakan klik Simpan.";
+            document.getElementById("status").innerText = "⏳ Selesai! Mengirim data ke Google Spreadsheet...";
+            bicara("Data lengkap, memproses penyimpanan ke spreadsheet.", kirimKeSpreadsheet);
         }
     }
 
-    // Kasus khusus untuk pilihan dropdown TK
-    function ArahkanSetelahTK() {
-        const pilihan = document.getElementById('pilihanTK').value;
-        if(pilihan === "Tidak") {
-            document.getElementById('namaTK').value = "-";
-            // Jika tidak TK, langsung lompat fokus ke tombol simpan
-            document.querySelector('.btn-submit').focus();
-            document.getElementById('status-text').innerText = "Data selesai, silakan klik tombol Simpan Data.";
-        } else {
-            document.getElementById('namaTK').focus();
-        }
-    }
+    if(recognizer) {
+        recognizer.onresult = function(event) {
+            let hasilSuara = event.results[0][0].transcript;
+            let item = daftarPertanyaan[indeksSekarang];
+            
+            document.getElementById("status").style.background = "#eff6ff";
+            document.getElementById("status").style.borderColor = "#bfdbfe";
+            document.getElementById("status").style.color = "#1e40af";
 
-    // Kirim Data Akhir ke Google Spreadsheet Bapak
-    document.getElementById('ppdbForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const submitBtn = document.querySelector('.btn-submit');
-        submitBtn.innerText = "Mengirim data ke Google Sheets...";
-        submitBtn.disabled = true;
+            // FORMULASI ATURAN KHUSUS (DARI INSTRUKSI):
+            
+            // 1. Format Tanggal Otomatis (Contoh: "9 Agustus 2000" -> 09/08/2000)
+            if (item.tipe === "tanggal") {
+                hasilSuara = formatTanggalIndo(hasilSuara);
+            }
+            
+            // 2. Format NIK Otomatis (Hapus spasi, pastikan ditambah tanda petik satu "'" di awal script pengiriman)
+            if (item.tipe === "nik") {
+                hasilSuara = hasilSuara.replace(/\s+/g, ''); // bersihkan spasi jika ada pencatatan angka terpisah
+            }
 
-        const payload = {
-            noDaftar: document.getElementById('noDaftar').value,
-            nama: document.getElementById('nama').value,
-            nik: document.getElementById('nik').value,
-            tempatLahir: document.getElementById('tempatLahir').value,
-            tglLahir: document.getElementById('tglLahir').value,
-            ayah: document.getElementById('ayah').value,
-            ibu: document.getElementById('ibu').value,
-            alamat: document.getElementById('alamat').value,
-            pilihanTK: document.getElementById('pilihanTK').value,
-            namaTK: document.getElementById('namaTK').value,
-            jarak: document.getElementById('jarak').value
+            // 3. Format Pilihan Ya atau Tidak
+            if (item.tipe === "pilihan") {
+                if (hasilSuara.toLowerCase().includes("ya")) hasilSuara = "Ya";
+                else if (hasilSuara.toLowerCase().includes("tidak")) hasilSuara = "Tidak";
+                else hasilSuara = "Tidak"; // Default jika tidak jelas
+            }
+
+            // Simpan data
+            dataHasil[item.kunci] = hasilSuara;
+            
+            // Cetak di Log layar browser
+            document.getElementById("logBox").innerHTML += `<b>${item.kunci}:</b> ${hasilSuara}<br>`;
+            
+            indeksSekarang++;
+            setTimeout(prosesPertanyaan, 1000);
         };
 
-        fetch(URL_WEB_APP, {
+        recognizer.onerror = function(event) {
+            document.getElementById("status").innerText = "Suara tidak terdengar jelas, mengulangi pertanyaan...";
+            setTimeout(prosesPertanyaan, 1500);
+        };
+    }
+
+    // Fungsi Pengubah Kata Tanggal Indonesia ke Format MM/DD/YYYY agar dikenali Spreadsheet sebagai format DATE murni
+    function formatTanggalIndo(teksSuara) {
+        const bulanIndo = {
+            "januari": 1, "februari": 2, "maret": 3, "april": 4, "mei": 5, "juni": 6,
+            "juli": 7, "agustus": 8, "september": 9, "oktober": 10, "november": 11, "desember": 12
+        };
+        
+        let bersih = teksSuara.toLowerCase().replace(/-/g, " ");
+        let bagian = bersih.split(" ");
+        
+        if (bagian.length >= 3) {
+            let tgl = parseInt(bagian[0]);
+            let blnKata = bagian[1];
+            let thn = parseInt(bagian[2]);
+            
+            let bln = bulanIndo[blnKata] || 1;
+            
+            // Mengembalikan format standar tanggal komputer agar dikenali Google Sheets sebagai objek Tanggal (Date), bukan Plain Text
+            return `${bln}/${tgl}/${thn}`; 
+        }
+        return teksSuara; 
+    }
+
+    function kirimKeSpreadsheet() {
+        // Kirim data via POST ke Google Apps Script API
+        fetch(DEPLOY_URL, {
             method: "POST",
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.status === "sukses") {
-                alert("Alhamdulillah, Data Murid Sukses Masuk ke Spreadsheet baris " + data.baris);
-                document.getElementById('ppdbForm').reset();
-                // Kembalikan fokus ke kotak pertama untuk murid selanjutnya
-                document.getElementById('noDaftar').focus();
-            } else {
-                alert("Gagal kirim: " + data.error);
-            }
-        })
-        .catch(err => alert("Eror jaringan: " + err))
-        .finally(() => {
-            submitBtn.innerText = "💾 SIMPAN DATA KE SPREADSHEET";
-            submitBtn.disabled = false;
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dataHasil)
+        }).then(() => {
+            document.getElementById("status").innerText = "✅ Alhamdulillah, Data Sukses Tersimpan!";
+            bicara("Alhamdulillah, data sukses disimpan ke spreadsheet.");
+            document.getElementById("btnMulai").disabled = false;
+        }).catch(err => {
+            document.getElementById("status").innerText = "Gagal mengirim data, periksa koneksi internet.";
+            document.getElementById("btnMulai").disabled = false;
         });
-    });
+    }
 </script>
+
 </body>
 </html>
