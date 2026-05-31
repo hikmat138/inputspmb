@@ -38,20 +38,21 @@
 <script>
     const DEPLOY_URL = "https://script.google.com/macros/s/AKfycbyrv0asRbF8L7GDyDGZ92vH-ZiaGdc0KQeUk0dfqF5YbrevXeHd5mnYRxrnH75cG-Dm/exec";
 
-    // Struktur pertanyaan dengan penyesuaian logika alur bercabang
+    // Struktur pertanyaan KALIBRASI TOTAL sesuai kolom A - R Google Sheets Pak Hikmat
     const daftarPertanyaan = [
         { kunci: "no_pendaftaran", teks: "Berapa nomor pendaftarannya?", tipe: "teks" },
         { kunci: "nama_lengkap", teks: "Siapa nama lengkap murid?", tipe: "teks" },
-        { kunci: "nik", teks: "Berapa nomor N I K murid?", tipe: "nik" },
+        { kunci: "jenis_kelamin", teks: "Apa jenis kelaminnya? Jawab Laki-laki atau Perempuan", tipe: "jk" },
         { kunci: "tempat_lahir", teks: "Di mana tempat lahirnya?", tipe: "teks" },
         { kunci: "tanggal_lahir", teks: "Sebutkan tanggal lahirnya?", tipe: "tanggal" },
         { kunci: "nama_ayah", teks: "Siapa nama ayah kandungnya?", tipe: "teks" },
         { kunci: "nama_ibu", teks: "Siapa nama ibu kandungnya?", tipe: "teks" },
         { kunci: "pilihan_tk", teks: "Apakah murid lulusan T K? Jawab Ya atau Tidak", tipe: "pilihan" },
-        { kunci: "nama_tk", teks: "Apa nama T K asalnya?", tipe: "teks" }, // Bisa dilewati secara otomatis
+        { kunci: "nama_tk", teks: "Apa nama T K asalnya?", tipe: "teks" }, 
         { kunci: "alamat", teks: "Di mana alamat tempat tinggalnya?", tipe: "teks" },
         { kunci: "opsi_jarak", teks: "Pilih jarak rumah. Apakah Kurang dari 1 KM atau Lebih dari 1 KM?", tipe: "jarak_opsi" },
-        { kunci: "jarak_km", teks: "Berapa kilometer jarak pastinya?", tipe: "teks" } // Bisa dilewati secara otomatis
+        { kunci: "jarak_km", teks: "Berapa kilometer jarak pastinya?", tipe: "teks" },
+        { kunci: "agama", teks: "Apa agama murid?", tipe: "teks" }
     ];
 
     let indeksSekarang = 0;
@@ -95,14 +96,14 @@
             let item = daftarPertanyaan[indeksSekarang];
             
             // LOGIKA LOMPAT 1: Jika bukan lulusan TK, lewati pertanyaan nama TK
-            if (item.kunci === "nama_tk" && dataHasil["pilihan_tk"] === "Tidak") {
-                dataHasil["nama_tk"] = "-"; 
+            if (item.kunci === "nama_tk" && dataHasil["pilihan_tk"] === "TIDAK") {
+                dataHasil["nama_tk"] = "Bukan Lulusan TK"; 
                 indeksSekarang++;
                 prosesPertanyaan();
                 return;
             }
 
-            // LOGIKA LOMPAT 2: Jika jarak kurang dari 1 KM, isi data otomatis dan lewati pertanyaan nilai KM pastinya
+            // LOGIKA LOMPAT 2: Jika jarak kurang dari 1 KM, isi data otomatis dan lewati nilai KM murninya
             if (item.kunci === "jarak_km" && dataHasil["opsi_jarak"] === "Kurang dari 1 KM") {
                 dataHasil["jarak_km"] = "< 1 KM"; 
                 indeksSekarang++;
@@ -148,25 +149,29 @@
             let item = daftarPertanyaan[indeksSekarang];
             let TeksLogTampilan = hasilSuara; 
 
-            // 1. Format Tanggal Otomatis (ISO format YYYY-MM-DD)
+            // 1. Format Jenis Kelamin Otomatis jadi L atau P
+            if (item.tipe === "jk") {
+                if (hasilSuara.toLowerCase().includes("perempuan") || hasilSuara.toLowerCase().includes("putri") || hasilSuara.toLowerCase() === "p") {
+                    hasilSuara = "P";
+                } else {
+                    hasilSuara = "L"; // Default Laki-laki jika mengucapkan kata lain
+                }
+                TeksLogTampilan = hasilSuara;
+            }
+
+            // 2. Format Tanggal Otomatis (ISO format YYYY-MM-DD)
             if (item.tipe === "tanggal") {
                 let tanggalTerformat = formatTanggalKeISO(hasilSuara);
                 if(tanggalTerformat !== null) {
                     hasilSuara = tanggalTerformat;
                 }
             }
-            
-            // 2. Format NIK Otomatis (Bersihkan spasi)
-            if (item.tipe === "nik") {
-                hasilSuara = hasilSuara.replace(/\s+/g, ''); 
-                TeksLogTampilan = hasilSuara;
-            }
 
-            // 3. Format Pilihan Ya atau Tidak untuk TK
+            // 3. Format Pilihan YA atau TIDAK untuk Lulusan TK (Kapital disamakan)
             if (item.tipe === "pilihan") {
-                if (hasilSuara.toLowerCase().includes("ya")) hasilSuara = "Ya";
-                else if (hasilSuara.toLowerCase().includes("tidak")) hasilSuara = "Tidak";
-                else hasilSuara = "Tidak";
+                if (hasilSuara.toLowerCase().includes("ya")) hasilSuara = "YA";
+                else if (hasilSuara.toLowerCase().includes("tidak")) hasilSuara = "TIDAK";
+                else hasilSuara = "TIDAK";
                 TeksLogTampilan = hasilSuara;
             }
 
@@ -174,15 +179,23 @@
             if (item.tipe === "jarak_opsi") {
                 if (hasilSuara.toLowerCase().includes("kurang") || hasilSuara.toLowerCase().includes("kurang dari")) {
                     hasilSuara = "Kurang dari 1 KM";
-                } else if (hasilSuara.toLowerCase().includes("lebih") || hasilSuara.toLowerCase().includes("lebih dari")) {
+                } else if (hasilSuara.toLowerCase().includes("lebih") || htmlSuara.toLowerCase().includes("lebih dari")) {
                     hasilSuara = "Lebih dari 1 KM";
                 } else {
-                    hasilSuara = "Kurang dari 1 KM"; // Default jika suara kurang jelas
+                    hasilSuara = "Kurang dari 1 KM";
                 }
                 TeksLogTampilan = hasilSuara;
             }
 
-            // Simpan hasil ke objek
+            // Tambahkan koma otomatis jika mengisi Tempat Lahir
+            if (item.kunci === "tempat_lahir" && hasilSuara.trim() !== "") {
+                if (!hasilSuara.endsWith(",")) {
+                    hasilSuara = hasilSuara.trim() + ",";
+                }
+                TeksLogTampilan = hasilSuara;
+            }
+
+            // Simpan hasil ke objek dataHasil
             dataHasil[item.kunci] = hasilSuara;
             
             // Cetak ke Log Box Layar
@@ -241,17 +254,16 @@
     }
 
     function kirimKeSpreadsheet() {
-        // Kita satukan hasil opsi_jarak dan nilai km murni agar pas masuk ke 1 kolom Jarak (KM) di Spreadsheet Bapak
+        // Gabungkan teks jarak km biar serasi dengan macro Excel Bapak
         let hasilJarakFinal = dataHasil["jarak_km"];
         if (dataHasil["opsi_jarak"] === "Lebih dari 1 KM") {
-            // Jika berisi angka murni, misal "5", format tampilannya kita perjelas menjadi "5 KM"
-            hasilJarakFinal = dataHasil["jarak_km"].toLowerCase().includes("km") ? dataHasil["jarak_km"] : dataHasil["jarak_km"] + " KM";
+            hasilJarakFinal = dataHasil["jarak_km"].toLowerCase().includes("km") ? dataHasil["jarak_km"] : " " + dataHasil["jarak_km"] + " KM";
         }
         
         let payload = {
             no_pendaftaran: dataHasil["no_pendaftaran"],
             nama_lengkap: dataHasil["nama_lengkap"],
-            nik: dataHasil["nik"],
+            jenis_kelamin: dataHasil["jenis_kelamin"], // Menggantikan NIK
             tempat_lahir: dataHasil["tempat_lahir"],
             tanggal_lahir: dataHasil["tanggal_lahir"],
             nama_ayah: dataHasil["nama_ayah"],
@@ -259,7 +271,8 @@
             pilihan_tk: dataHasil["pilihan_tk"],
             nama_tk: dataHasil["nama_tk"],
             alamat: dataHasil["alamat"],
-            jarak_km: hasilJarakFinal
+            jarak_km: hasilJarakFinal,
+            agama: dataHasil["agama"] // Menambahkan Agama di akhir payload
         };
 
         fetch(DEPLOY_URL, {
@@ -269,7 +282,7 @@
             body: JSON.stringify(payload)
         }).then(() => {
             document.getElementById("status").innerText = "✅ Alhamdulillah, Data Sukses Tersimpan!";
-            bicara("Alhamdulillah, data sukses disimpan ke spreadsheet.");
+            bicara("Alhamdulillah, data murid berhasil disimpan secara permanen.");
             document.getElementById("btnMulai").disabled = false;
         }).catch(err => {
             document.getElementById("status").innerText = "Gagal mengirim data.";
